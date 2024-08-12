@@ -4,7 +4,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 
 const errorController = require("./controllers/errors");
-const db = require("./util/database");
+const sequelize = require("./util/database");
 
 const app = express();
 
@@ -17,17 +17,16 @@ app.use(express.static(path.join(__dirname, "public")));
 const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 
-db.execute("SELECT * FROM products")
-  .then((result) => {
-    console.log(result);
-  })
-  .catch((err) => {
-    console.log(err);
-  });
-
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
 
 app.use(errorController.getPageNotFound);
 
-app.listen(4000);
+sequelize
+  .sync()
+  .then(() => {
+    app.listen(4000);
+  })
+  .catch((err) => {
+    console.log(err);
+  });
