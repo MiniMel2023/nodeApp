@@ -4,13 +4,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 
 const errorController = require("./controllers/errors");
-const sequelize = require("./util/database");
-const Product = require("./models/product");
+const mongoConnect = require("./util/database").mongoConnect;
 const User = require("./models/user");
-const Cart = require("./models/cart");
-const CartItem = require("./models/cart-item");
-const Order = require("./models/order");
-const OrderItem = require("./models/order-item");
 
 const app = express();
 
@@ -24,12 +19,14 @@ const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
 
 app.use((req, res, next) => {
-  User.findAll({ where: { id: 1 } })
+  User.findById("66c78e393bf290b3f6a0974c")
     .then((user) => {
-      req.user = user[0];
+      req.user = new User(user.name, user.email, user.cart, user._id);
       next();
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      console.log(err);
+    });
 });
 
 app.use("/admin", adminRoutes);
@@ -37,36 +34,6 @@ app.use(shopRoutes);
 
 app.use(errorController.getPageNotFound);
 
-Product.belongsTo(User, { constraints: true, onDelete: "CASCADE" });
-User.hasMany(Product);
-
-User.hasOne(Cart);
-Cart.belongsTo(User);
-
-Cart.belongsToMany(Product, { through: CartItem });
-Product.belongsToMany(Cart, { through: CartItem });
-
-Order.belongsTo(User);
-User.hasMany(Order);
-Order.belongsToMany(Product, { through: OrderItem });
-
-sequelize
-  .sync()
-  .then((result) => {
-    return User.findByPk(1);
-  })
-  .then((user) => {
-    if (!user) {
-      return User.create({ name: "Test User", email: "email@test.com" });
-    }
-    return user;
-  })
-  .then((user) => {
-    return user.createCart();
-  })
-  .then((cart) => {
-    app.listen(4000);
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+mongoConnect(() => {
+  app.listen(4000);
+});
